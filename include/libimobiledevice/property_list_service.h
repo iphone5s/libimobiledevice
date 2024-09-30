@@ -98,7 +98,7 @@ LIBIMOBILEDEVICE_API property_list_service_error_t property_list_service_send_xm
  *      or PROPERTY_LIST_SERVICE_E_UNKNOWN_ERROR when an unspecified error occurs.
  */
 LIBIMOBILEDEVICE_API property_list_service_error_t property_list_service_send_binary_plist(property_list_service_client_t client, plist_t plist);
-LIBIMOBILEDEVICE_API property_list_service_error_t property_list_service_send_binary_plist(property_list_service_client_t client, plist_t plist, int host2big);
+LIBIMOBILEDEVICE_API property_list_service_error_t property_list_service_send_binary_plist_with_host2big(property_list_service_client_t client, plist_t plist, int host2big);
 /**
  * Receives a plist using the given property list service client with specified
  * timeout.

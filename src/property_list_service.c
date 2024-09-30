@@ -106,7 +106,7 @@ property_list_service_error_t property_list_service_client_free(property_list_se
  *      occurs, or PROPERTY_LIST_SERVICE_E_UNKNOWN_ERROR when an unspecified
  *      error occurs.
  */
-static property_list_service_error_t internal_plist_send(property_list_service_client_t client, plist_t plist, int binary)
+static property_list_service_error_t internal_plist_send(property_list_service_client_t client, plist_t plist, int binary, int host2big)
 {
 	property_list_service_error_t res = PROPERTY_LIST_SERVICE_E_UNKNOWN_ERROR;
 	char *content = NULL;
@@ -128,7 +128,15 @@ static property_list_service_error_t internal_plist_send(property_list_service_c
 		return PROPERTY_LIST_SERVICE_E_PLIST_ERROR;
 	}
 
-	nlen = htobe32(length);
+	if (host2big)
+	{
+		nlen = htobe32(length);
+	}
+	else
+	{
+		nlen = length;
+	}
+
 	debug_info("sending %d bytes", length);
 	service_send(client->parent, (const char*)&nlen, sizeof(nlen), &bytes);
 	if (bytes == sizeof(nlen)) {
@@ -154,12 +162,17 @@ static property_list_service_error_t internal_plist_send(property_list_service_c
 
 property_list_service_error_t property_list_service_send_xml_plist(property_list_service_client_t client, plist_t plist)
 {
-	return internal_plist_send(client, plist, 0);
+	return internal_plist_send(client, plist, 0, 1);
 }
 
 property_list_service_error_t property_list_service_send_binary_plist(property_list_service_client_t client, plist_t plist)
 {
-	return internal_plist_send(client, plist, 1);
+	return internal_plist_send(client, plist, 1, 1);
+}
+
+property_list_service_error_t property_list_service_send_binary_plist_with_host2big(property_list_service_client_t client, plist_t plist, int host2big)
+{
+	return internal_plist_send(client, plist, 1, host2big);
 }
 
 /**
@@ -180,7 +193,7 @@ property_list_service_error_t property_list_service_send_binary_plist(property_l
  *      communication error occurs, or PROPERTY_LIST_SERVICE_E_UNKNOWN_ERROR
  *      when an unspecified error occurs.
  */
-static property_list_service_error_t internal_plist_receive_timeout(property_list_service_client_t client, plist_t *plist, unsigned int timeout)
+static property_list_service_error_t internal_plist_receive_timeout(property_list_service_client_t client, plist_t *plist, unsigned int timeout, int big2host)
 {
 	property_list_service_error_t res = PROPERTY_LIST_SERVICE_E_UNKNOWN_ERROR;
 	uint32_t pktlen = 0;
@@ -207,7 +220,11 @@ static property_list_service_error_t internal_plist_receive_timeout(property_lis
 	uint32_t curlen = 0;
 	char *content = NULL;
 
-	pktlen = be32toh(pktlen);
+	if (big2host)
+	{
+		pktlen = be32toh(pktlen);
+	}
+	
 	debug_info("%d bytes following", pktlen);
 	content = (char*)malloc(pktlen);
 	if (!content) {
@@ -264,12 +281,17 @@ static property_list_service_error_t internal_plist_receive_timeout(property_lis
 
 property_list_service_error_t property_list_service_receive_plist_with_timeout(property_list_service_client_t client, plist_t *plist, unsigned int timeout)
 {
-	return internal_plist_receive_timeout(client, plist, timeout);
+	return internal_plist_receive_timeout(client, plist, timeout, 1);
 }
 
 property_list_service_error_t property_list_service_receive_plist(property_list_service_client_t client, plist_t *plist)
 {
-	return internal_plist_receive_timeout(client, plist, 30000);
+	return internal_plist_receive_timeout(client, plist, 30000, 1);
+}
+
+property_list_service_error_t property_list_service_receive_plist_with_big2host(property_list_service_client_t client, plist_t *plist, int big2host)
+{
+	return internal_plist_receive_timeout(client, plist, 30000, big2host);
 }
 
 property_list_service_error_t property_list_service_enable_ssl(property_list_service_client_t client)
